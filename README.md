@@ -1,12 +1,6 @@
-# pulldown-cmark
+# markdown-weaver
 
-[![Tests](https://github.com/pulldown-cmark/pulldown-cmark/actions/workflows/rust.yml/badge.svg)](https://github.com/pulldown-cmark/pulldown-cmark/actions/workflows/rust.yml)
-[![Docs](https://docs.rs/pulldown-cmark/badge.svg)](https://docs.rs/pulldown-cmark)
-[![Crates.io](https://img.shields.io/crates/v/pulldown-cmark.svg?maxAge=2592000)](https://crates.io/crates/pulldown-cmark)
-
-[Documentation](https://docs.rs/pulldown-cmark/)
-
-This library is a pull parser for [CommonMark](http://commonmark.org/), written
+This library is a pull parser for [CommonMark](http://commonmark.org/) and a custom variant of Markdown for the Weaver atproto-based blog engine, written
 in [Rust](http://www.rust-lang.org/). It comes with a simple command-line tool,
 useful for rendering to HTML, and is also designed to be easy to use from as
 a library.
@@ -211,9 +205,11 @@ pulldown-cmark = { version = "*", default-features = false }
 
 ## Authors
 
-The main author is Raph Levien. The implementation of the new design (v0.3+) was
+The main author of [`pulldown-cmark`](https://github.com/pulldown-cmark/pulldown-cmark) is Raph Levien. The implementation of the new design (v0.3+) was
 completed by Marcus Klaas de Vries. Since 2023, the development has been driven
-by Martín Pozo, Michael Howell, Roope Salmi and Martin Geisler.
+by Martín Pozo, Michael Howell, Roope Salmi and Martin Geisler. 
+
+This fork is developed by [Orual](https://github.com/orual)
 
 ## License
 

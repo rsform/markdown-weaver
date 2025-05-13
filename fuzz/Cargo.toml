@@ -1,5 +1,5 @@
 [package]
-name = "pulldown-cmark-fuzz"
+name = "markdown-weaver-fuzz"
 version = "0.0.0"
 authors = ["Automatically generated"]
 publish = false
@@ -19,11 +19,11 @@ mozjs = { git = "https://github.com/servo/mozjs", rev = "d90edd169aae1e16c1ef8b7
 ] }
 urlencoding = "2.1.2"
 
-[dependencies.pulldown-cmark]
-path = "../pulldown-cmark"
+[dependencies.markdown-weaver]
+path = "../markdown-weaver"
 
 [features]
-simd = [ "pulldown-cmark/simd" ]
+simd = [ "markdown-weaver/simd" ]
 
 [[bin]]
 name = "parse"

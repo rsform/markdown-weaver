@@ -4,6 +4,7 @@ use std::convert::TryInto;
 use std::ptr;
 
 use anyhow::anyhow;
+use markdown_weaver::{CodeBlockKind, Event, LinkType, Parser, Tag, TagEnd};
 use mozjs::conversions::ToJSValConvertible;
 use mozjs::jsapi::{
     EnterRealm, HandleValueArray, JS_NewGlobalObject, LeaveRealm, OnNewGlobalHookOption,
@@ -13,7 +14,6 @@ use mozjs::rooted;
 use mozjs::rust::wrappers::JS_CallFunctionName;
 use mozjs::rust::SIMPLE_GLOBAL_CLASS;
 use mozjs::rust::{JSEngine, RealmOptions, Runtime};
-use pulldown_cmark::{CodeBlockKind, Event, LinkType, Parser, Tag, TagEnd};
 use quick_xml::escape::unescape;
 use quick_xml::events::Event as XmlEvent;
 use quick_xml::reader::Reader;
@@ -25,14 +25,14 @@ fn urldecode(data: &str) -> String {
 
 /// Send Markdown `text` to `pulldown-cmark` and return Markdown
 /// events.
-pub fn pulldown_cmark(text: &str) -> Vec<Event<'_>> {
+pub fn markdown_weaver(text: &str) -> Vec<Event<'_>> {
     Parser::new(text).collect()
 }
 
 /// Send Markdown `text` to `commonmark.js` and return XML.
 pub fn commonmark_js(text: &str) -> anyhow::Result<String> {
     const COMMONMARK_MIN_JS: &str =
-        include_str!("../../pulldown-cmark/third_party/commonmark.js/commonmark.min.js");
+        include_str!("../../markdown-weaver/third_party/commonmark.js/commonmark.min.js");
 
     thread_local! {
         static ENGINE: JSEngine = {
@@ -410,8 +410,8 @@ pub fn print_events(text: &str, events: &[Event]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use markdown_weaver::{CodeBlockKind, Event, Tag, TagEnd};
     use pretty_assertions::assert_eq;
-    use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
 
     #[test]
     fn test_normalize_text() {

@@ -1,5 +1,5 @@
 [package]
-name = "pulldown-cmark-bench"
+name = "markdown-weaver-bench"
 publish = false
 version = "0.0.0"
 edition = "2021"
@@ -17,10 +17,10 @@ name = "markdown-it"
 harness = false
 
 [dependencies]
-pulldown-cmark = { path = "../pulldown-cmark" }
+markdown-weaver = { path = "../markdown-weaver" }
 
 [features]
-simd = [ "pulldown-cmark/simd" ]
+simd = [ "markdown-weaver/simd" ]
 
 [dev-dependencies]
 criterion = "0.5.1"

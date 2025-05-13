@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use pulldown_cmark::{html, Parser};
+use markdown_weaver::{html, Parser};
 use std::fs::{read_dir, read_to_string};
 
 pub fn markdown_it_samples(c: &mut Criterion) {

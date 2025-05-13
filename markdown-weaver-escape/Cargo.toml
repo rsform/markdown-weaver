@@ -1,0 +1,17 @@
+[package]
+name = "markdown-weaver-escape"
+version = "0.11.0"
+authors = [
+]
+license = "MIT"
+description = "An escape library for HTML created in the markdown-weaver project"
+repository = "https://github.com/rsform/markdown-weaver"
+keywords = ["escape", "html", "markdown", "commonmark"]
+categories = ["text-processing"]
+edition = "2021"
+rust-version = "1.70" # Update README.md and GitHub action when changing this
+readme = "./README.md"
+
+[features]
+simd = []
+std = []

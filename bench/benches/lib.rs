@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main};
 
 mod to_html {
     use criterion::{BenchmarkId, Criterion, Throughput};
-    use pulldown_cmark::{html, Options, Parser};
+    use markdown_weaver::{html, Options, Parser};
 
     pub fn pathological_missing_table_cells(c: &mut Criterion) {
         let mut group = c.benchmark_group(

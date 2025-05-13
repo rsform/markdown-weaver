@@ -10,7 +10,7 @@ struct FuzzingInput<'a> {
 }
 
 fuzz_target!(|data: FuzzingInput<'_>| {
-    let opts = pulldown_cmark::Options::from_bits_truncate(data.options);
+    let opts = markdown_weaver::Options::from_bits_truncate(data.options);
 
-    for _ in pulldown_cmark::Parser::new_ext(data.markdown, opts) {}
+    for _ in markdown_weaver::Parser::new_ext(data.markdown, opts) {}
 });

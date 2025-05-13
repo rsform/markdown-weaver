@@ -1,11 +1,11 @@
 [workspace]
-default-members = ["pulldown-cmark", "pulldown-cmark-escape"]
+default-members = ["markdown-weaver", "markdown-weaver-escape"]
 members = [
   "bench",
   "dos-fuzzer",
   "fuzz",
-  "pulldown-cmark",
-  "pulldown-cmark-escape",
+  "markdown-weaver",
+  "markdown-weaver-escape",
 ]
 resolver = "2"
 

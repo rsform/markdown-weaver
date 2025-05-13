@@ -49,7 +49,7 @@ use std::time::{Duration, Instant};
 
 use clap;
 use crossbeam_utils::thread;
-use pulldown_cmark::{Options, Parser};
+use markdown_weaver::{Options, Parser};
 use rand::{distributions::Distribution, seq::SliceRandom, Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
 use serde::{Deserialize, Serialize};

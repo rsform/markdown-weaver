@@ -9,7 +9,7 @@ edition = "2018"
 syn = { version = "2", features = ["full", "visit"] }
 itertools = "0.10"
 walkdir = "2.5"
-pulldown-cmark = { path = "../pulldown-cmark" }
+markdown-weaver = { path = "../markdown-weaver" }
 ndarray = "0.15"
 ndarray-stats = "0.5"
 rand = "0.8"

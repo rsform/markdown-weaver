@@ -219,6 +219,7 @@ pub fn xml_to_events(xml: &str) -> anyhow::Result<Vec<Event>> {
                             dest_url,
                             title,
                             id,
+                            attrs: Some(markdown_weaver::WeaverAttributes::default()),
                         }
                     }));
                 }
@@ -370,6 +371,7 @@ pub fn normalize(events: Vec<Event<'_>>) -> Vec<Event<'_>> {
                 dest_url: urldecode(&dest_url).into(),
                 title: title.clone(),
                 id: id.clone(),
+                attrs: Some(markdown_weaver::WeaverAttributes::default()),
             })),
             // commonmark.js does not distinguish between fenced code
             // blocks with a "" info string and indented code blocks.

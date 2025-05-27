@@ -321,6 +321,10 @@ pub enum Tag<'a> {
 pub enum EmbedType {
     Image,
     Comments,
+    Post,
+    Markdown,
+    Leaflet,
+    Other,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

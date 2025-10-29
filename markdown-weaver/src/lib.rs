@@ -93,6 +93,7 @@ compile_error!("\"hashbrown\" feature should be enabled in \"no_std\" environmen
 
 use alloc::vec::Vec;
 
+use parse::WeaverAttributes;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -642,7 +643,7 @@ pub enum Event<'a> {
     /// **Note**: Under some conditions HTML can also be parsed as an HTML Block, see [`Tag::HtmlBlock`] for details.
     #[cfg_attr(feature = "serde", serde(borrow))]
     InlineHtml(CowStr<'a>),
-    /// A reference to a footnote with given label, which may or may not be defined
+    /// A reference to a footnote with given label, defined
     /// by an event with a [`Tag::FootnoteDefinition`] tag. Definitions and references to them may
     /// occur in any order. Only parsed and emitted with [`Options::ENABLE_FOOTNOTES`] or [`Options::ENABLE_OLD_FOOTNOTES`].
     ///

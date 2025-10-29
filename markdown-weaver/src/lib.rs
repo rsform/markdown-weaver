@@ -113,11 +113,10 @@ mod tree;
 
 use core::fmt::Display;
 
-pub use parse::WeaverAttributes;
 
 pub use crate::{
     parse::{
-        BrokenLink, BrokenLinkCallback, DefaultBrokenLinkCallback, OffsetIter, Parser, RefDefs,
+        BrokenLink, BrokenLinkCallback, DefaultBrokenLinkCallback, OffsetIter, Parser, RefDefs,WeaverAttributes
     },
     strings::{CowStr, InlineStr},
     utils::*,

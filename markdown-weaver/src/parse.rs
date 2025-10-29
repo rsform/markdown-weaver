@@ -296,7 +296,6 @@ impl<'input, F: BrokenLinkCallback<'input>> Parser<'input, F> {
         let weaver_stack = Default::default();
         Parser {
             broken_link_callback,
-
             inner: ParserInner {
                 text,
                 options,
@@ -312,6 +311,7 @@ impl<'input, F: BrokenLinkCallback<'input>> Parser<'input, F> {
                 math_delims: MathDelims::new(),
                 weaver_stack,
             },
+
         }
     }
 

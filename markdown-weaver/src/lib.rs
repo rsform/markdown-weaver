@@ -93,6 +93,7 @@ compile_error!("\"hashbrown\" feature should be enabled in \"no_std\" environmen
 
 use alloc::vec::Vec;
 
+use parse::WeaverAttributes;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 

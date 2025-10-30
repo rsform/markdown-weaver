@@ -1100,7 +1100,7 @@ impl<'input> ParserInner<'input> {
             };
 
             if let Some((has_pothole, body_node, wikiname)) = wikilink {
-                println!("wn {wikiname}");
+                //println!("wn {wikiname}");
                 let maybe_weaver_block_start = wikiname.find("{");
 
                 let (w_attr_ix, wikiname) = if let Some(ix) = maybe_weaver_block_start {
@@ -1126,7 +1126,7 @@ impl<'input> ParserInner<'input> {
                 } else {
                     (None, wikiname)
                 };
-                println!("wikiname: {wikiname}");
+                //println!("wikiname: {wikiname}");
                 let link_ix = if let Some(sub_ref) = wikiname.rfind('#') {
                     let (wikitext, rest) = wikiname.split_at(sub_ref);
                     let rest = &rest[1..];

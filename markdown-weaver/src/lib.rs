@@ -112,10 +112,10 @@ mod tree;
 
 use core::fmt::Display;
 
-
 pub use crate::{
     parse::{
-        BrokenLink, BrokenLinkCallback, DefaultBrokenLinkCallback, OffsetIter, Parser, RefDefs,WeaverAttributes
+        BrokenLink, BrokenLinkCallback, DefaultBrokenLinkCallback, OffsetIter, Parser, RefDefs,
+        WeaverAttributes,
     },
     strings::{CowStr, InlineStr},
     utils::*,
@@ -812,6 +812,7 @@ bitflags::bitflags! {
         const ENABLE_WIKILINKS = 1 << 15;
         /// Obsidian-style embeds.
         const ENABLE_OBSIDIAN_EMBEDS = 1 << 16;
+        const ENABLE_SIMPLE_HARDBREAKS = 1 << 17;
     }
 }
 

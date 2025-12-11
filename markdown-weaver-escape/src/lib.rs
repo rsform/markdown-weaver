@@ -256,6 +256,25 @@ pub fn escape_html_body_text<W: StrWrite>(w: W, s: &str) -> Result<(), W::Error>
     }
 }
 
+/// Like [`escape_html_body_text`], but also returns the number of Unicode scalar
+/// values (chars) in the input string.
+///
+/// This is useful when you need both the escaped HTML and the character count,
+/// as it counts chars during the escape pass for efficiency.
+pub fn escape_html_body_text_with_char_count<W: StrWrite>(
+    w: W,
+    s: &str,
+) -> Result<usize, W::Error> {
+    #[cfg(all(target_arch = "x86_64", feature = "simd"))]
+    {
+        simd::escape_html_with_char_count(w, s, &HTML_BODY_TEXT_ESCAPE_TABLE)
+    }
+    #[cfg(not(all(target_arch = "x86_64", feature = "simd")))]
+    {
+        escape_html_scalar_with_char_count(w, s, &HTML_BODY_TEXT_ESCAPE_TABLE)
+    }
+}
+
 fn escape_html_scalar<W: StrWrite>(
     mut w: W,
     s: &str,
@@ -280,6 +299,46 @@ fn escape_html_scalar<W: StrWrite>(
         mark = i; // all escaped characters are ASCII
     }
     w.write_str(&s[mark..])
+}
+
+fn escape_html_scalar_with_char_count<W: StrWrite>(
+    mut w: W,
+    s: &str,
+    table: &'static [u8; 256],
+) -> Result<usize, W::Error> {
+    let bytes = s.as_bytes();
+    let mut mark = 0;
+    let mut i = 0;
+    let mut char_count = 0;
+
+    while i < s.len() {
+        match bytes[i..]
+            .iter()
+            .inspect(|&&c| {
+                // Count UTF-8 start bytes (not continuation bytes)
+                if (c & 0xC0) != 0x80 {
+                    char_count += 1;
+                }
+            })
+            .position(|&c| table[c as usize] != 0)
+        {
+            Some(pos) => {
+                i += pos;
+            }
+            None => break,
+        }
+
+        let c = bytes[i];
+        let escape = table[c as usize];
+        let escape_seq = HTML_ESCAPES[escape as usize];
+        w.write_str(&s[mark..i])?;
+        w.write_str(escape_seq)?;
+        i += 1;
+        mark = i; // all escaped characters are ASCII
+    }
+
+    w.write_str(&s[mark..])?;
+    Ok(char_count)
 }
 
 #[cfg(all(target_arch = "x86_64", feature = "simd"))]

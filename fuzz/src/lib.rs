@@ -32,7 +32,7 @@ pub fn markdown_weaver(text: &str) -> Vec<Event<'_>> {
 /// Send Markdown `text` to `commonmark.js` and return XML.
 pub fn commonmark_js(text: &str) -> anyhow::Result<String> {
     const COMMONMARK_MIN_JS: &str =
-        include_str!("../../markdown-weaver/third_party/commonmark.js/commonmark.min.js");
+        include_str!("../../../markdown-weaver/third_party/commonmark.js/commonmark.min.js");
 
     thread_local! {
         static ENGINE: JSEngine = {

@@ -311,7 +311,6 @@ impl<'input, F: BrokenLinkCallback<'input>> Parser<'input, F> {
                 math_delims: MathDelims::new(),
                 weaver_stack,
             },
-
         }
     }
 

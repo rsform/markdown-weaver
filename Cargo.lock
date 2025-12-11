@@ -1224,7 +1224,6 @@ dependencies = [
  "bitflags",
  "getopts",
  "hashbrown 0.15.3",
- "lazy_static",
  "markdown-weaver-escape",
  "memchr",
  "regex",

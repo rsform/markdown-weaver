@@ -41,7 +41,7 @@ use crate::{
     strings::CowStr,
     tree::{Tree, TreeIndex},
     Alignment, BlockQuoteKind, CodeBlockKind, Event, HeadingLevel, InlineStr, LinkType,
-    MetadataBlockKind, Options, Tag, TagEnd, WeaverBlockKind,
+    MetadataBlockKind, Options, ParagraphContext, Tag, TagEnd, WeaverBlockKind,
 };
 
 // Allowing arbitrary depth nested parentheses inside link destinations
@@ -108,7 +108,7 @@ pub(crate) enum ItemBody {
     Root,
 
     // These are block items.
-    Paragraph,
+    Paragraph(ParagraphContext),
     TightParagraph,
     Rule,
     Heading(HeadingLevel, Option<HeadingIndex>), // heading level
@@ -2664,7 +2664,7 @@ impl<'input> ParserInner<'input> {
 
 fn body_to_tag_end(body: &ItemBody) -> TagEnd {
     match *body {
-        ItemBody::Paragraph => TagEnd::Paragraph,
+        ItemBody::Paragraph(ctx) => TagEnd::Paragraph(ctx),
         ItemBody::Emphasis => TagEnd::Emphasis,
         ItemBody::Superscript => TagEnd::Superscript,
         ItemBody::Subscript => TagEnd::Subscript,
@@ -2712,7 +2712,7 @@ fn item_to_event<'a>(item: Item, text: &'a str, allocs: &mut Allocations<'a>) ->
         }
         ItemBody::TaskListMarker(checked) => return Event::TaskListMarker(checked),
         ItemBody::Rule => return Event::Rule,
-        ItemBody::Paragraph => Tag::Paragraph,
+        ItemBody::Paragraph(ctx) => Tag::Paragraph(ctx),
         ItemBody::Emphasis => Tag::Emphasis,
         ItemBody::Superscript => Tag::Superscript,
         ItemBody::Subscript => Tag::Subscript,
@@ -3258,9 +3258,9 @@ text
         let events: Vec<_> = Parser::new(input).collect();
         let expected = [
             Event::Start(Tag::BlockQuote(None)),
-            Event::Start(Tag::Paragraph),
+            Event::Start(Tag::Paragraph(ParagraphContext::Complete)),
             Event::InlineHtml(CowStr::Boxed("<foo\nbar>".to_string().into())),
-            Event::End(TagEnd::Paragraph),
+            Event::End(TagEnd::Paragraph(ParagraphContext::Complete)),
             Event::End(TagEnd::BlockQuote(None)),
         ];
         assert_eq!(&events, &expected);
@@ -3271,7 +3271,7 @@ text
         let input = "[[foo]] [[bar|baz]]";
         let events: Vec<_> = Parser::new_ext(input, Options::ENABLE_WIKILINKS).collect();
         let expected = [
-            Event::Start(Tag::Paragraph),
+            Event::Start(Tag::Paragraph(ParagraphContext::Complete)),
             Event::Start(Tag::Link {
                 link_type: LinkType::WikiLink {
                     has_pothole: false,
@@ -3295,7 +3295,7 @@ text
             }),
             Event::Text(CowStr::Borrowed("baz")),
             Event::End(TagEnd::Link),
-            Event::End(TagEnd::Paragraph),
+            Event::End(TagEnd::Paragraph(ParagraphContext::Complete)),
         ];
         assert_eq!(&events, &expected);
     }

@@ -159,6 +159,17 @@ pub enum BlockQuoteKind {
     Caution,
 }
 
+/// Context for how a paragraph ended or was interrupted.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum ParagraphContext {
+    /// Paragraph ended naturally (blank line or end of input)
+    #[default]
+    Complete,
+    /// Paragraph was interrupted by a block element
+    Interrupted,
+}
+
 /// Metadata block kind.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -172,7 +183,8 @@ pub enum MetadataBlockKind {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Tag<'a> {
     /// A paragraph of text and other inline elements.
-    Paragraph,
+    /// The context indicates whether the paragraph ended naturally or was interrupted.
+    Paragraph(ParagraphContext),
 
     /// A heading, with optional identifier, classes and custom attributes.
     /// The identifier is prefixed with `#` and the last one in the attributes
@@ -338,7 +350,7 @@ pub enum WeaverBlockKind {
 impl<'a> Tag<'a> {
     pub fn to_end(&self) -> TagEnd {
         match self {
-            Tag::Paragraph => TagEnd::Paragraph,
+            Tag::Paragraph(ctx) => TagEnd::Paragraph(*ctx),
             Tag::Heading { level, .. } => TagEnd::Heading(*level),
             Tag::BlockQuote(kind) => TagEnd::BlockQuote(*kind),
             Tag::CodeBlock(_) => TagEnd::CodeBlock,
@@ -368,7 +380,7 @@ impl<'a> Tag<'a> {
 
     pub fn into_static(self) -> Tag<'static> {
         match self {
-            Tag::Paragraph => Tag::Paragraph,
+            Tag::Paragraph(ctx) => Tag::Paragraph(ctx),
             Tag::Heading {
                 level,
                 id,
@@ -448,7 +460,7 @@ impl<'a> Tag<'a> {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum TagEnd {
-    Paragraph,
+    Paragraph(ParagraphContext),
     Heading(HeadingLevel),
 
     BlockQuote(Option<BlockQuoteKind>),

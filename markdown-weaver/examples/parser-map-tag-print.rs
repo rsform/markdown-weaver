@@ -55,7 +55,7 @@ fn main() {
                     "Heading heading_level: {} fragment identifier: {:?} classes: {:?} attrs: {:?}",
                     level, id, classes, attrs
                 ),
-                Tag::Paragraph => println!("Paragraph"),
+                Tag::Paragraph(_) => println!("Paragraph"),
                 Tag::List(ordered_list_first_item_number) => println!(
                     "List ordered_list_first_item_number: {:?}",
                     ordered_list_first_item_number

@@ -15,7 +15,7 @@ use crate::{
     scanners::*,
     strings::CowStr,
     tree::{Tree, TreeIndex},
-    HeadingLevel, MetadataBlockKind, Options, WeaverAttributes,
+    HeadingLevel, MetadataBlockKind, Options, ParagraphContext, WeaverAttributes,
 };
 
 /// Runs the first pass, which resolves the block structure of the document,
@@ -170,7 +170,7 @@ impl<'a, 'b> FirstPass<'a, 'b> {
                     matches!(
                         item,
                         Item {
-                            body: ItemBody::Paragraph
+                            body: ItemBody::Paragraph(_)
                                 | ItemBody::TightParagraph
                                 | ItemBody::MaybeDefinitionListTitle
                                 | ItemBody::DefinitionListDefinition(_),
@@ -188,7 +188,7 @@ impl<'a, 'b> FirstPass<'a, 'b> {
                 })
             {
                 match item.body {
-                    ItemBody::Paragraph | ItemBody::TightParagraph => {
+                    ItemBody::Paragraph(_) | ItemBody::TightParagraph => {
                         item.body = ItemBody::DefinitionList(true);
                         let Item { start, end, .. } = *item;
                         let list_idx = self.tree.cur().unwrap();
@@ -656,12 +656,14 @@ impl<'a, 'b> FirstPass<'a, 'b> {
                 ItemBody::MaybeDefinitionListTitle
             } else {
                 self.finish_list(start_ix);
-                ItemBody::Paragraph
+                ItemBody::Paragraph(ParagraphContext::Complete)
             }
         } else {
             self.finish_list(start_ix);
-            ItemBody::Paragraph
+            ItemBody::Paragraph(ParagraphContext::Complete)
         };
+        // Track whether paragraph was interrupted by a block element
+        let mut interrupted = false;
         let node_ix = self.tree.append(Item {
             start: start_ix,
             end: 0, // will get set later
@@ -738,6 +740,7 @@ impl<'a, 'b> FirstPass<'a, 'b> {
                     if let Some(pos) = trailing_backslash_pos {
                         self.tree.append_text(pos, pos + 1, false);
                     }
+                    interrupted = true;
                     break;
                 }
             }
@@ -751,6 +754,14 @@ impl<'a, 'b> FirstPass<'a, 'b> {
             ix = next_ix + line_start.bytes_scanned();
             if let Some(item) = brk {
                 self.tree.append(item);
+            }
+        }
+
+        // Update paragraph context if it was interrupted by a block element
+        // But if we're at end of input, that's a natural paragraph end, not an interruption
+        if interrupted && ix < bytes.len() {
+            if let ItemBody::Paragraph(_) = self.tree[node_ix].item.body {
+                self.tree[node_ix].item.body = ItemBody::Paragraph(ParagraphContext::Interrupted);
             }
         }
 
@@ -2235,7 +2246,7 @@ fn scan_paragraph_interrupt_no_table(
                 && tree.peek_up().map_or(false, |cur| {
                     matches!(
                         tree[cur].item.body,
-                        ItemBody::Paragraph
+                        ItemBody::Paragraph(_)
                             | ItemBody::TightParagraph
                             | ItemBody::MaybeDefinitionListTitle
                     )
@@ -2304,7 +2315,7 @@ fn surgerize_tight_list(tree: &mut Tree<Item>, list_ix: TreeIndex) {
     while let Some(listitem_ix) = list_item {
         let mut node_ix = tree[listitem_ix].child;
         while let Some(node) = node_ix {
-            if let ItemBody::Paragraph = tree[node].item.body {
+            if let ItemBody::Paragraph(_) = tree[node].item.body {
                 tree[node].item.body = ItemBody::TightParagraph;
             }
             node_ix = tree[node].next;
@@ -2324,7 +2335,7 @@ fn fixup_end_of_definition_list(tree: &mut Tree<Item>, list_ix: TreeIndex) {
                 list_item = tree[listitem_ix].next;
             }
             body @ ItemBody::MaybeDefinitionListTitle => {
-                *body = ItemBody::Paragraph;
+                *body = ItemBody::Paragraph(ParagraphContext::Complete);
                 break;
             }
             _ => break,

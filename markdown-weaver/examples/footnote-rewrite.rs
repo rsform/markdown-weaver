@@ -129,7 +129,7 @@ fn main() {
                         has_written_backrefs = false;
                         Event::Html(format!(r##"<li id="fn-{name}">"##).into())
                     }
-                    Event::End(TagEnd::FootnoteDefinition) | Event::End(TagEnd::Paragraph)
+                    Event::End(TagEnd::FootnoteDefinition) | Event::End(TagEnd::Paragraph(_))
                         if !has_written_backrefs && i >= fl_len - 2 =>
                     {
                         let usage_count = footnote_numbers.get(&name).unwrap().1;

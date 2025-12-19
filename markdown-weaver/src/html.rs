@@ -170,7 +170,7 @@ where
     fn start_tag(&mut self, tag: Tag<'a>) -> Result<(), W::Error> {
         match tag {
             Tag::HtmlBlock => Ok(()),
-            Tag::Paragraph => {
+            Tag::Paragraph(_) => {
                 if self.end_newline {
                     self.write("<p>")
                 } else {
@@ -470,7 +470,7 @@ where
     fn end_tag(&mut self, tag: TagEnd) -> Result<(), W::Error> {
         match tag {
             TagEnd::HtmlBlock => {}
-            TagEnd::Paragraph => {
+            TagEnd::Paragraph(_) => {
                 self.write("</p>\n")?;
             }
             TagEnd::Heading(level) => {

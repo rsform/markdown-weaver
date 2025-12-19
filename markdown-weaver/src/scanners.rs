@@ -797,6 +797,24 @@ pub(crate) fn scan_metadata_block(
     }
 }
 
+/// Scan WeaverBlock prefix at block level: {.attrs} followed by EOL
+/// Returns (content, total_bytes_including_eol) if valid block prefix
+pub(crate) fn scan_weaver_block_prefix(data: &[u8]) -> Option<(Vec<u8>, usize)> {
+    if data.first() != Some(&b'{') {
+        return None;
+    }
+
+    let (content, block_len) = scan_weaver_block(data)?;
+
+    // Must be followed by EOL or EOF to be block-level
+    let after = &data[block_len..];
+    if after.is_empty() || after[0] == b'\n' || (after.len() > 1 && &after[0..2] == b"\r\n") {
+        Some((content, block_len))
+    } else {
+        None // Has inline content after, not a block prefix
+    }
+}
+
 pub(crate) fn scan_blockquote_start(data: &[u8]) -> Option<usize> {
     if data.first().copied() == Some(b'>') {
         let space = if data.get(1).copied() == Some(b' ') {

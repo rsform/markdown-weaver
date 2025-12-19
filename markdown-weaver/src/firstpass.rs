@@ -15,7 +15,7 @@ use crate::{
     scanners::*,
     strings::CowStr,
     tree::{Tree, TreeIndex},
-    HeadingLevel, MetadataBlockKind, Options,
+    HeadingLevel, MetadataBlockKind, Options, WeaverAttributes,
 };
 
 /// Runs the first pass, which resolves the block structure of the document,
@@ -404,6 +404,10 @@ impl<'a, 'b> FirstPass<'a, 'b> {
         }
 
         let ix = start_ix + line_start.bytes_scanned();
+        // Check for WeaverBlock prefix: {.attrs} at line start followed by newline
+        if let Some((content, block_len)) = scan_weaver_block_prefix(&bytes[ix..]) {
+            return self.parse_weaver_block_prefix(ix, block_len, content);
+        }
 
         self.parse_paragraph(ix, None)
     }
@@ -576,6 +580,64 @@ impl<'a, 'b> FirstPass<'a, 'b> {
 
         let (ix, row_ix) = self.parse_table_row_inner(ix, row_cells, missing_empty_cells)?;
         Some((ix, row_ix))
+    }
+    fn parse_weaver_block_prefix(
+        &mut self,
+        start: usize,
+        block_len: usize,
+        content: Vec<u8>,
+    ) -> usize {
+        let end = start + block_len;
+
+        // Parse attrs from content (reuse logic from handle_weaver_block)
+        let content_str = String::from_utf8_lossy(&content);
+        let attrs = self.parse_block_weaver_attrs(&content_str);
+        let attrs_ix = self.allocs.allocate_weaver_attrset(attrs);
+
+        // Emit WeaverBlock as standalone item (no children)
+        self.tree.append(Item {
+            start,
+            end,
+            body: ItemBody::WeaverBlock(attrs_ix),
+        });
+
+        // Skip past EOL
+        let bytes = self.text.as_bytes();
+        let mut ix = end;
+        ix += scan_eol(&bytes[ix..]).unwrap_or(0);
+
+        // Continue parsing next block
+        self.parse_block(ix)
+    }
+
+    fn parse_block_weaver_attrs(&self, text: &str) -> WeaverAttributes<'static> {
+        let mut classes = Vec::new();
+        let mut attrs = Vec::new();
+
+        for part in text.split(',') {
+            let part = part.trim();
+            if part.is_empty() {
+                continue;
+            }
+
+            if let Some((key, value)) = part.split_once(':') {
+                let key = key.trim();
+                let value = value.trim();
+                if !key.is_empty() && !value.is_empty() {
+                    attrs.push((
+                        CowStr::from(key.to_string()),
+                        CowStr::from(value.to_string()),
+                    ));
+                }
+            } else {
+                let class = part.strip_prefix('.').unwrap_or(part);
+                if !class.is_empty() {
+                    classes.push(CowStr::from(class.to_string()));
+                }
+            }
+        }
+
+        WeaverAttributes { classes, attrs }
     }
 
     /// Returns offset of line start after paragraph.

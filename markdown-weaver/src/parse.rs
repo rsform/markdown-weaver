@@ -1010,12 +1010,16 @@ impl<'input> ParserInner<'input> {
         let mut attrs = WeaverAttributes::default();
         for part in block_text.split(',') {
             let mut splits = part.splitn(2, ':');
-            let k = splits.next()?.trim();
-            let v = splits.next()?.trim();
-            if !k.is_empty() && !v.is_empty() {
-                attrs.attrs.push((k.into(), v.into()));
-            } else if !k.is_empty() {
-                attrs.classes.push(k.into());
+            let Some(k) = splits.next().map(|s| s.trim()) else {
+                continue;
+            };
+            let v = splits.next().map(|s| s.trim());
+            if !k.is_empty() {
+                if let Some(v) = v.filter(|s| !s.is_empty()) {
+                    attrs.attrs.push((k.into(), v.into()));
+                } else {
+                    attrs.classes.push(k.into());
+                }
             }
         }
         Some((

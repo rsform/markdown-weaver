@@ -975,7 +975,7 @@ pub(crate) fn scan_weaver_block_inner(
     if i < 1 {
         return None;
     }
-    let buffer = data[1..i].to_vec();
+    let buffer = data[1..=i].to_vec();
 
     return Some((buffer, i));
 }

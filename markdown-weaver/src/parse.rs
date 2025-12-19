@@ -1016,9 +1016,11 @@ impl<'input> ParserInner<'input> {
             let v = splits.next().map(|s| s.trim());
             if !k.is_empty() {
                 if let Some(v) = v.filter(|s| !s.is_empty()) {
-                    attrs.attrs.push((k.into(), v.into()));
+                    attrs
+                        .attrs
+                        .push((k.strip_prefix('.').unwrap_or(k).into(), v.into()));
                 } else {
-                    attrs.classes.push(k.into());
+                    attrs.classes.push(k.strip_prefix('.').unwrap_or(k).into());
                 }
             }
         }

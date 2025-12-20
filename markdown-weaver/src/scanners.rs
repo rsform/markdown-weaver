@@ -971,31 +971,48 @@ pub(crate) fn scan_weaver_block(data: &[u8]) -> Option<(Vec<u8>, usize)> {
 
 /// Assumes that `data` starts with `{`.
 /// Returns the number of bytes scanned and the text if it is a weaver block.
-/// Currently doees NOT handle nesting.
+/// Currently does NOT handle nesting.
+///
+/// Validates that the content looks like weaver syntax:
+/// - Must contain `:` (for key:value) or `.` (for classes)
+/// - Must NOT contain `=` or `#` (heading attr syntax)
 pub(crate) fn scan_weaver_block_inner(
     data: &[u8],
     _newline_handler: Option<&dyn Fn(&[u8]) -> usize>,
 ) -> Option<(Vec<u8>, usize)> {
-    println!("data: {}", String::from_utf8_lossy(data));
     let mut i = 1;
-    if data.get(i + 1) == Some(&b'}') {
+    // Check for empty braces {} - not a valid weaver block
+    if data.get(i) == Some(&b'}') {
         return None;
     }
     while i < data.len() {
-        i += scan_while(&data[i..], |c| c != b'}');
-        println!("i: {}", i);
-        println!("data: {}", String::from_utf8_lossy(&data[..i]));
-        println!("rest: {}", String::from_utf8_lossy(&data[i..]));
+        let scanned = scan_while(&data[i..], |c| c != b'}');
+        i += scanned;
         if data.get(i) == Some(&b'}') {
             break;
         }
     }
-    if i < 1 {
+    if i <= 1 {
         return None;
     }
-    let buffer = data[1..i].to_vec();
+    let content = &data[1..i];
 
-    return Some((buffer, i + 1));
+    // Validate weaver syntax: must have `:` or `.`, must NOT have `=` or `#`
+    let has_colon = content.contains(&b':');
+    let has_dot = content.contains(&b'.');
+    let has_equals = content.contains(&b'=');
+    let has_hash = content.contains(&b'#');
+
+    // Reject heading attr syntax
+    if has_equals || has_hash {
+        return None;
+    }
+    // Require weaver syntax markers
+    if !has_colon && !has_dot {
+        return None;
+    }
+
+    Some((content.to_vec(), i + 1))
 }
 
 // note: dest returned is raw, still needs to be unescaped

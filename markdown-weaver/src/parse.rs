@@ -40,8 +40,8 @@ use crate::{
     scanners::*,
     strings::CowStr,
     tree::{Tree, TreeIndex},
-    Alignment, BlockQuoteKind, CodeBlockKind, Event, HeadingLevel, InlineStr, LinkType,
-    MetadataBlockKind, Options, ParagraphContext, Tag, TagEnd, WeaverBlockKind,
+    Alignment, BlockQuoteKind, CodeBlockKind, Event, HeadingLevel, LinkType, MetadataBlockKind,
+    Options, ParagraphContext, Tag, TagEnd, WeaverBlockKind,
 };
 
 // Allowing arbitrary depth nested parentheses inside link destinations
@@ -699,7 +699,7 @@ impl<'input> ParserInner<'input> {
                             continue;
                         }
                         let next = self.tree[cur_ix].next;
-                        if let Some((next_ix, url, title)) =
+                        if let Some((next_ix, url, title, weaver_content)) =
                             self.scan_inline_link(block_text, self.tree[cur_ix].item.end, next)
                         {
                             let next_node = scan_nodes_to_ix(&self.tree, next, next_ix);
@@ -708,12 +708,25 @@ impl<'input> ParserInner<'input> {
                             }
                             cur = Some(tos.node);
                             cur_ix = tos.node;
+
+                            // Parse weaver block content if present
+                            let weaver_attrs = weaver_content.and_then(|content| {
+                                if !content.is_empty() {
+                                    let converted_string =
+                                        String::from_utf8(content).expect("invalid utf8");
+                                    self.handle_weaver_block(&converted_string, cur_ix, prev)
+                                        .map(|(_, w_idx)| w_idx)
+                                } else {
+                                    None
+                                }
+                            });
+
                             let link_ix = self.allocs.allocate_link(
                                 LinkType::Inline,
                                 url,
                                 title,
                                 "".into(),
-                                None,
+                                weaver_attrs,
                             );
                             self.tree[cur_ix].item.body = if tos.ty == LinkStackTy::Image {
                                 ItemBody::Image(link_ix)
@@ -905,7 +918,6 @@ impl<'input> ParserInner<'input> {
                         backslash_escaped: false,
                     };
                     if self.options.contains(Options::ENABLE_OBSIDIAN_EMBEDS) {
-                        println!("maybe weaver block open");
                         let next = self.tree[cur_ix].next;
                         let weaver_block = next.and_then(|next_ix| {
                             self.scan_weaver_block(
@@ -919,12 +931,9 @@ impl<'input> ParserInner<'input> {
                             let weaver_block = if !span.is_empty() {
                                 let converted_string =
                                     String::from_utf8(span).expect("invalid utf8");
-                                println!("WEAVER BLOCK: {:?}", converted_string);
-
                                 self.handle_weaver_block(&converted_string, cur_ix, prev)
                             } else {
                                 let span = &self.text[self.tree[cur_ix].item.start..ix];
-                                //println!("WEAVER BLOCK: {:?}", span);
                                 self.handle_weaver_block(span, cur_ix, prev)
                             };
                             if let Some((_tree_idx, w_idx)) = weaver_block {
@@ -952,8 +961,6 @@ impl<'input> ParserInner<'input> {
                     self.tree[cur_ix].item.body = ItemBody::Text {
                         backslash_escaped: false,
                     };
-                    println!("maybe weaver block close");
-                    println!("block_text: {block_text}");
                     if self.options.contains(Options::ENABLE_OBSIDIAN_EMBEDS) {
                         if let Some((node, _)) = self.handle_weaver_block(block_text, cur_ix, prev)
                         {
@@ -980,29 +987,21 @@ impl<'input> ParserInner<'input> {
         cur_ix: TreeIndex,
         prev: Option<TreeIndex>,
     ) -> Option<(TreeIndex, WeaverAttrsIndex)> {
-        println!("block_text: {block_text}");
-
         // this is a wikilink closing delim, try popping from
         // the wikilink stack
         if let Some(tos) = self.weaver_stack.pop() {
-            println!("tos: {tos:?}");
             if tos.ty == WeaverBlockKind::Ignored {
-                println!("ignored");
                 return None;
             }
             // fetches the beginning of the weaver block body
-            let Some(body_node) = self.tree[tos.node].next.and_then(|ix| self.tree[ix].next) else {
+            let Some(_body_node) = self.tree[tos.node].next.and_then(|ix| self.tree[ix].next)
+            else {
                 // skip if no next node exists, like at end of input
-                println!("no next node");
                 return None;
             };
-            let start_ix = self.tree[body_node].item.start;
-            let end_ix = self.tree[cur_ix].item.start;
             if block_text.is_empty() {
-                println!("empty block text");
                 return None;
             }
-            println!("start_ix: {start_ix}, end_ix: {end_ix}");
         }
         if let Some(prev_ix) = prev {
             self.tree[prev_ix].next = None;
@@ -1016,12 +1015,17 @@ impl<'input> ParserInner<'input> {
             let v = splits.next().map(|s| s.trim());
             if !k.is_empty() {
                 if let Some(v) = v.filter(|s| !s.is_empty()) {
+                    // key:value pair with non-empty value
                     attrs
                         .attrs
                         .push((k.strip_prefix('.').unwrap_or(k).into(), v.into()));
-                } else {
-                    attrs.classes.push(k.strip_prefix('.').unwrap_or(k).into());
+                } else if let Some(class) = k.strip_prefix('.') {
+                    // no value (or empty value) - only treat as class if it has . prefix
+                    if !class.is_empty() {
+                        attrs.classes.push(class.into());
+                    }
                 }
+                // else: key with empty value and no . prefix - skip it
             }
         }
         Some((
@@ -1036,7 +1040,8 @@ impl<'input> ParserInner<'input> {
             &bytes[(ix - 1)..],
             Some(&|bytes| skip_container_prefixes(&self.tree, bytes, self.options)),
         )?;
-        Some((span, i + ix - 1))
+        let result = i + ix - 1;
+        Some((span, result))
     }
 
     /// Handles a wikilink.
@@ -1105,14 +1110,12 @@ impl<'input> ParserInner<'input> {
             };
 
             if let Some((has_pothole, body_node, wikiname)) = wikilink {
-                //println!("wn {wikiname}");
                 let maybe_weaver_block_start = wikiname.find("{");
 
                 let (w_attr_ix, wikiname) = if let Some(ix) = maybe_weaver_block_start {
                     let weaver_block = scan_weaver_block(wikiname[ix..].as_bytes());
 
-                    if let Some((span, end_ix)) = weaver_block {
-                        println!("weaver block: {}", String::from_utf8_lossy(&span));
+                    if let Some((span, _end_ix)) = weaver_block {
                         let weaver_block = if !span.is_empty() {
                             let converted_string = String::from_utf8(span).expect("invalid utf8");
                             self.handle_weaver_block(&converted_string, cur_ix, prev)
@@ -1131,7 +1134,6 @@ impl<'input> ParserInner<'input> {
                 } else {
                     (None, wikiname)
                 };
-                //println!("wikiname: {wikiname}");
                 let link_ix = if let Some(sub_ref) = wikiname.rfind('#') {
                     let (wikitext, rest) = wikiname.split_at(sub_ref);
                     let rest = &rest[1..];
@@ -1415,13 +1417,13 @@ impl<'input> ParserInner<'input> {
         self.wikilink_stack.disable_all_links();
     }
 
-    /// Returns next byte index, url and title.
+    /// Returns next byte index, url, title, and optional weaver block content.
     fn scan_inline_link(
         &self,
         underlying: &'input str,
         mut ix: usize,
         node: Option<TreeIndex>,
-    ) -> Option<(usize, CowStr<'input>, CowStr<'input>)> {
+    ) -> Option<(usize, CowStr<'input>, CowStr<'input>, Option<Vec<u8>>)> {
         if underlying.as_bytes().get(ix) != Some(&b'(') {
             return None;
         }
@@ -1455,12 +1457,26 @@ impl<'input> ParserInner<'input> {
         } else {
             "".into()
         };
+
+        // Check for weaver block after title (or after dest if no title)
+        let weaver_content = if underlying.as_bytes().get(ix) == Some(&b'{') {
+            if let Some((content, block_len)) = scan_weaver_block(&underlying.as_bytes()[ix..]) {
+                ix += block_len;
+                scan_separator(&mut ix);
+                Some(content)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         if underlying.as_bytes().get(ix) != Some(&b')') {
             return None;
         }
         ix += 1;
 
-        Some((ix, dest, title))
+        Some((ix, dest, title, weaver_content))
     }
 
     // returns (bytes scanned, title cow)
@@ -1812,10 +1828,12 @@ impl Tree<Item> {
         false
     }
 
+    #[allow(dead_code)]
     pub(crate) fn is_in_weaver_block(&self) -> bool {
         false
     }
 
+    #[allow(dead_code)]
     pub(crate) fn is_in_link(&self) -> bool {
         false
     }
@@ -2159,6 +2177,7 @@ impl WeaverBlockStack {
         self.disabled_ix = 0;
     }
 
+    #[allow(dead_code)]
     fn disable_all_attrs(&mut self) {
         for el in &mut self.inner[self.disabled_ix..] {
             match el.ty {

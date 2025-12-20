@@ -630,9 +630,11 @@ impl<'a, 'b> FirstPass<'a, 'b> {
                     ));
                 }
             } else {
-                let class = part.strip_prefix('.').unwrap_or(part);
-                if !class.is_empty() {
-                    classes.push(CowStr::from(class.to_string()));
+                // Classes must start with . prefix
+                if let Some(class) = part.strip_prefix('.') {
+                    if !class.is_empty() {
+                        classes.push(CowStr::from(class.to_string()));
+                    }
                 }
             }
         }

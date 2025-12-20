@@ -4,7 +4,7 @@ use std::convert::TryInto;
 use std::ptr;
 
 use anyhow::anyhow;
-use markdown_weaver::{CodeBlockKind, Event, LinkType, Parser, Tag, TagEnd};
+use markdown_weaver::{CodeBlockKind, Event, LinkType, ParagraphContext, Parser, Tag, TagEnd};
 use mozjs::conversions::ToJSValConvertible;
 use mozjs::jsapi::{
     EnterRealm, HandleValueArray, JS_NewGlobalObject, LeaveRealm, OnNewGlobalHookOption,
@@ -132,7 +132,9 @@ pub fn xml_to_events(xml: &str) -> anyhow::Result<Vec<Event<'_>>> {
                 {
                     continue;
                 }
-                b"paragraph" => events.push(Event::Start(Tag::Paragraph)),
+                b"paragraph" => {
+                    events.push(Event::Start(Tag::Paragraph(ParagraphContext::default())))
+                }
                 b"heading" => match tag.try_get_attribute("level")? {
                     Some(level) => {
                         let level = level
@@ -253,7 +255,9 @@ pub fn xml_to_events(xml: &str) -> anyhow::Result<Vec<Event<'_>>> {
                 {
                     continue;
                 }
-                b"paragraph" => events.push(Event::End(TagEnd::Paragraph)),
+                b"paragraph" => {
+                    events.push(Event::End(TagEnd::Paragraph(ParagraphContext::default())))
+                }
                 b"heading" => events.push(Event::End(TagEnd::Heading(
                     heading_stack.pop().ok_or(anyhow!("Heading stack empty"))?,
                 ))),
@@ -312,15 +316,17 @@ pub fn normalize(events: Vec<Event<'_>>) -> Vec<Event<'_>> {
 
             // commonmark.js wraps non-empty list items in a paragraph.
             (Some(Event::Start(Tag::Item)), next)
-                if next != &Event::Start(Tag::Paragraph) && next != &Event::End(TagEnd::Item) =>
+                if next != &Event::Start(Tag::Paragraph(ParagraphContext::default()))
+                    && next != &Event::End(TagEnd::Item) =>
             {
-                normalized.push(Event::Start(Tag::Paragraph));
+                normalized.push(Event::Start(Tag::Paragraph(ParagraphContext::default())));
                 normalized.push(event);
             }
             (Some(prev), Event::End(TagEnd::Item))
-                if prev != &Event::End(TagEnd::Paragraph) && prev != &Event::Start(Tag::Item) =>
+                if prev != &Event::End(TagEnd::Paragraph(ParagraphContext::default()))
+                    && prev != &Event::Start(Tag::Item) =>
             {
-                normalized.push(Event::End(TagEnd::Paragraph));
+                normalized.push(Event::End(TagEnd::Paragraph(ParagraphContext::default())));
                 normalized.push(event);
             }
 
@@ -462,9 +468,9 @@ mod tests {
             vec![
                 Event::Start(Tag::List(None)),
                 Event::Start(Tag::Item),
-                Event::Start(Tag::Paragraph),
+                Event::Start(Tag::Paragraph(ParagraphContext::default())),
                 Event::Text("foo".into()),
-                Event::End(TagEnd::Paragraph),
+                Event::End(TagEnd::Paragraph(ParagraphContext::default())),
                 Event::End(TagEnd::Item),
                 Event::End(TagEnd::List(false)),
             ]

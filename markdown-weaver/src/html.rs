@@ -36,7 +36,7 @@ use crate::{
     strings::CowStr,
     Alignment, BlockQuoteKind, CodeBlockKind,
     Event::{self, *},
-    LinkType, Tag, TagEnd, WeaverAttributes,
+    LinkType, Tag, TagEnd,
 };
 
 enum TableState {
@@ -377,9 +377,13 @@ where
                 if let Some(attrs) = attrs {
                     if !attrs.classes.is_empty() {
                         self.write("\" class=\"")?;
+                        let mut first = true;
                         for class in &attrs.classes {
+                            if !first {
+                                self.write(" ")?;
+                            }
+                            first = false;
                             escape_html(&mut self.writer, class)?;
-                            self.write(" ")?;
                         }
                         self.write("\" ")?;
                     } else {
@@ -425,9 +429,13 @@ where
                     self.write(" ")?;
                     if !attrs.classes.is_empty() {
                         self.write("class=\"")?;
+                        let mut first = true;
                         for class in &attrs.classes {
+                            if !first {
+                                self.write(" ")?;
+                            }
+                            first = false;
                             escape_html(&mut self.writer, class)?;
-                            self.write(" ")?;
                         }
                         self.write("\" ")?;
                     }
